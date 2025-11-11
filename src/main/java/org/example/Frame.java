@@ -22,7 +22,7 @@ public class Frame extends JFrame implements ActionListener {
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(10, 10, 10, 10);
 
-        icon = new ImageIcon(getClass().getResource("/helloKitty.png"));
+        icon = new ImageIcon(getClass().getResource("/images/helloKitty.png"));
         Image img = icon.getImage().getScaledInstance(120, 120, Image.SCALE_SMOOTH);
         icon = new ImageIcon(img);
         label = new JLabel(icon);
@@ -69,7 +69,7 @@ public class Frame extends JFrame implements ActionListener {
     }
 
     public void errorMessage() {
-        icon = new ImageIcon(getClass().getResource("/sadHelloKitty.png"));
+        icon = new ImageIcon(getClass().getResource("/images/sadHelloKitty.png"));
         Image image = icon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
         icon = new ImageIcon(image);
         label = new JLabel(icon);
