@@ -76,7 +76,7 @@ public class Frame extends JFrame implements ActionListener {
         label.setBounds(35, 60, 100, 50);
 
         JPanel panel = new JPanel();
-        panel.add(new JLabel(    "<html><center>Couldn't open file :(<br>Accepted formats: PNG, JPEG, TXT, GIF, MP3, MP4, PDF, DOCX, MDP</center></html>"));
+        panel.add(new JLabel(    "<html><center>Couldn't open file :(<br>Accepted formats: TXT, PNG, JPG, JPEG, GIF, BMP, MP3, MP4, WAV, PDF, DOCX, XLS, MDP</center></html>"));
 
         panel.add(label);
         JOptionPane.showMessageDialog(this,
@@ -153,6 +153,3 @@ public class Frame extends JFrame implements ActionListener {
 
     }
 }
-
-
-
