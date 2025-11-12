@@ -30,6 +30,8 @@ public class Frame extends JFrame implements ActionListener {
         c.anchor=GridBagConstraints.NORTH;
         c.gridx=0;
         c.gridy=0;
+        this.revalidate();
+        this.repaint();
         this.add(label,c);
 
         this.setIconImage(icon.getImage());
@@ -78,6 +80,8 @@ public class Frame extends JFrame implements ActionListener {
         JPanel panel = new JPanel();
         panel.add(new JLabel(    "<html><center>Couldn't open file :(<br>Accepted formats: TXT, PNG, JPG, JPEG, GIF, BMP, MP3, MP4, WAV, PDF, DOCX, XLS, MDP</center></html>"));
 
+        panel.revalidate();
+        panel.repaint();
         panel.add(label);
         JOptionPane.showMessageDialog(this,
                 panel,
