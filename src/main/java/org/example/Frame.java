@@ -6,7 +6,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
@@ -14,11 +13,16 @@ public class Frame extends JFrame implements ActionListener {
     JButton zipBtn;
     JButton unzipBtn;
     JButton removeBtn;
+    JButton backBtn;
+    JButton renameBtn;
+
     JPanel panel;
     JScrollPane scrollPane;
-    File currentDirectory;
+    JPanel topActionPanel;
     ImageIcon icon;
     JLabel label;
+
+    File currentDirectory;
 
     private final String[] allowedExtensions = {
             ".txt", ".png", ".jpg", ".jpeg", ".gif", ".bmp",
@@ -26,112 +30,140 @@ public class Frame extends JFrame implements ActionListener {
             ".mdp", ".zip", ".rar"};
 
     Frame() {
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setSize(800, 600);
-        this.setTitle("Kitty Explorer");
-        this.getContentPane().setBackground(new Color(0xffa4c6));
-        this.setLayout(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(5, 5, 5, 5);
+            this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            this.setSize(800, 600);
+            this.setTitle("Kitty Explorer");
+            this.getContentPane().setBackground(new Color(0xffa4c6));
+            this.setLayout(new GridBagLayout());
+            GridBagConstraints c = new GridBagConstraints();
+            c.insets = new Insets(5, 5, 5, 5);
 
-        // --- Load logo ---
-        icon = new ImageIcon(getClass().getResource("/images/helloKitty.png"));
-        Image img = icon.getImage().getScaledInstance(120, 120, Image.SCALE_SMOOTH);
-        icon = new ImageIcon(img);
-        label = new JLabel(icon);
+            // --- Load logo ---
+            icon = new ImageIcon(getClass().getResource("/images/helloKitty.png"));
+            Image img = icon.getImage().getScaledInstance(120, 120, Image.SCALE_SMOOTH);
+            icon = new ImageIcon(img);
+            label = new JLabel(icon);
 
-        // --- Left panel for logo + buttons ---
-        JPanel leftPanel = new JPanel(new GridBagLayout());
-        leftPanel.setBackground(new Color(0xffa4c6));
-        GridBagConstraints lc = new GridBagConstraints();
-        lc.insets = new Insets(5, 5, 5, 5);
-        lc.gridx = 0;
-        lc.fill = GridBagConstraints.HORIZONTAL;
-        lc.anchor = GridBagConstraints.NORTH;
-        lc.weightx = 1;
-        lc.weighty = 0;
+            // --- Left panel for logo + disk buttons ---
+            JPanel leftPanel = new JPanel(new GridBagLayout());
+            leftPanel.setBackground(new Color(0xffa4c6));
+            GridBagConstraints lc = new GridBagConstraints();
+            lc.insets = new Insets(5, 5, 5, 5);
+            lc.gridx = 0;
+            lc.fill = GridBagConstraints.HORIZONTAL;
+            lc.anchor = GridBagConstraints.NORTH;
+            lc.weightx = 1;
+            lc.weighty = 0;
 
-        lc.gridy = 0;
-        leftPanel.add(label, lc);
+            lc.gridy = 0;
+            leftPanel.add(label, lc);
 
-        // --- Dynamically create disk buttons ---
-        File[] roots = File.listRoots();
-        for (File root : roots) {
-            JButton rootBtn = new JButton(root.getAbsolutePath());
-            rootBtn.setBackground(new Color(0xffdae7));
-            rootBtn.setPreferredSize(new Dimension(120, 50));
-            rootBtn.setFocusable(false);
-            rootBtn.addActionListener(e -> {
-                currentDirectory = root;
-                showFiles(currentDirectory);
+            // Disk buttons
+            File[] roots = File.listRoots();
+            for (File root : roots) {
+                JButton rootBtn = new JButton(root.getAbsolutePath());
+                rootBtn.setBackground(new Color(0xffdae7));
+                rootBtn.setPreferredSize(new Dimension(120, 50));
+                rootBtn.setFocusable(false);
+                rootBtn.addActionListener(e -> {
+                    currentDirectory = root;
+                    showFiles(currentDirectory);
+                });
+                lc.gridy++;
+                leftPanel.add(rootBtn, lc);
+            }
+
+            // --- Create action buttons ---
+            zipBtn = new JButton("Zip");
+            zipBtn.setBackground(new Color(0xFC81B6));
+            unzipBtn = new JButton("Unzip");
+            unzipBtn.setBackground(new Color(0xFC81B6));
+            removeBtn = new JButton("Delete");
+            removeBtn.setBackground(new Color(0xFC81B6));
+
+            zipBtn.setFocusable(false);
+            unzipBtn.setFocusable(false);
+            removeBtn.setFocusable(false);
+
+            zipBtn.addActionListener(this);
+            unzipBtn.addActionListener(this);
+            removeBtn.addActionListener(this);
+
+            // --- Right panel setup ---
+            panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+            panel.setBackground(new Color(0xfffafc));
+            scrollPane = new JScrollPane(panel);
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+            // --- Top toolbar ---
+            topActionPanel = new JPanel();
+            topActionPanel.setLayout(new BoxLayout(topActionPanel, BoxLayout.X_AXIS));
+            topActionPanel.setBackground(new Color(0xfffafc));
+
+            // Back button
+            backBtn = new JButton("← Back");
+            backBtn.setFocusable(false);
+            backBtn.setBackground(new Color(0xFC81B6));
+            backBtn.addActionListener(ae -> {
+                if (currentDirectory.getParentFile() != null) {
+                    currentDirectory = currentDirectory.getParentFile();
+                    showFiles(currentDirectory);
+                }
             });
-            lc.gridy++;
-            leftPanel.add(rootBtn, lc);
-        }
+            topActionPanel.add(backBtn);
+            topActionPanel.add(Box.createRigidArea(new Dimension(5, 0)));
 
-        // --- Create other buttons ---
-        zipBtn = new JButton("Zip");
-        zipBtn.setBackground(new Color(0xffdae7));
-        zipBtn.setPreferredSize(new Dimension(120, 50));
-        zipBtn.setFocusable(false);
-        zipBtn.addActionListener(this);
+            // Rename button
+            renameBtn = new JButton("Rename");
+            renameBtn.setFocusable(false);
+            renameBtn.setBackground(new Color(0xFC81B6));
+            //renameBtn.addActionListener(e -> renameSelectedFile());
+            topActionPanel.add(renameBtn);
+            topActionPanel.add(Box.createRigidArea(new Dimension(5, 0)));
 
-        unzipBtn = new JButton("Unzip");
-        unzipBtn.setBackground(new Color(0xffdae7));
-        unzipBtn.setPreferredSize(new Dimension(120, 50));
-        unzipBtn.setFocusable(false);
-        unzipBtn.addActionListener(this);
+            // Add zip/unzip/delete buttons to toolbar
+            topActionPanel.add(zipBtn);
+            topActionPanel.add(Box.createRigidArea(new Dimension(5, 0)));
+            topActionPanel.add(unzipBtn);
+            topActionPanel.add(Box.createRigidArea(new Dimension(5, 0)));
+            topActionPanel.add(removeBtn);
+            topActionPanel.add(Box.createHorizontalGlue());
 
-        removeBtn = new JButton("Delete");
-        removeBtn.setBackground(new Color(0xF22C67));
-        removeBtn.setPreferredSize(new Dimension(120, 50));
-        removeBtn.setFocusable(false);
-        removeBtn.addActionListener(this);
+            // --- Right panel containing toolbar and file list ---
+            JPanel rightPanel = new JPanel(new BorderLayout());
+            rightPanel.add(topActionPanel, BorderLayout.NORTH);
+            rightPanel.add(scrollPane, BorderLayout.CENTER);
 
-        lc.gridy++;
-        leftPanel.add(zipBtn, lc);
-        lc.gridy++;
-        leftPanel.add(unzipBtn, lc);
-        lc.gridy++;
-        leftPanel.add(removeBtn, lc);
+            // --- Add panels to main frame ---
+            c.gridx = 0;
+            c.gridy = 0;
+            c.fill = GridBagConstraints.VERTICAL;
+            c.anchor = GridBagConstraints.NORTHWEST;
+            c.weightx = 0;
+            c.weighty = 1;
+            this.add(leftPanel, c);
 
-        // Glue to push buttons/logo to top
-        lc.gridy++;
-        lc.weighty = 1;
-        leftPanel.add(Box.createVerticalGlue(), lc);
+            c.gridx = 1;
+            c.gridy = 0;
+            c.fill = GridBagConstraints.BOTH;
+            c.weightx = 1;
+            c.weighty = 1;
+            this.add(rightPanel, c);
 
-        // --- Right scrollable panel ---
-        panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(new Color(0xfffafc));
-        scrollPane = new JScrollPane(panel);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            this.setIconImage(icon.getImage());
 
-        // --- Add panels to main frame ---
-        c.gridx = 0;
-        c.gridy = 0;
-        c.fill = GridBagConstraints.VERTICAL;
-        c.anchor = GridBagConstraints.NORTHWEST;
-        c.weightx = 0;
-        c.weighty = 1;
-        this.add(leftPanel, c);
+            // Default to first detected drive
+            if (roots.length > 0) currentDirectory = roots[0];
 
-        c.gridx = 1;
-        c.gridy = 0;
-        c.fill = GridBagConstraints.BOTH;
-        c.weightx = 1;
-        c.weighty = 1;
-        this.add(scrollPane, c);
+            this.setVisible(true);
 
-        this.setIconImage(icon.getImage());
-
-        // Default to first detected drive
-        if (roots.length > 0) currentDirectory = roots[0];
-
-        this.setVisible(true);
+            // Show initial files
+            showFiles(currentDirectory);
     }
 
-    public void errorMessage() {
+
+        public void errorMessage() {
         icon = new ImageIcon(getClass().getResource("/images/sadHelloKitty.png"));
         Image image = icon.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
         icon = new ImageIcon(image);
@@ -200,17 +232,6 @@ public class Frame extends JFrame implements ActionListener {
                 panel.add(fileButton);
             }
         }
-        if (dir.getParentFile() != null) {
-            JButton backButton = new JButton("← Back");
-            backButton.setBackground(new Color(255, 230, 230));
-            backButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-            backButton.addActionListener(ae -> {
-                currentDirectory = dir.getParentFile();
-                showFiles(currentDirectory);
-            });
-            panel.add(backButton, 0);
-        }
-
         panel.revalidate();
         panel.repaint();
     }
@@ -222,18 +243,24 @@ public class Frame extends JFrame implements ActionListener {
 
         File selected = chooser.getSelectedFile();
         String suggestedName = selected.getName();
-        if (suggestedName.toLowerCase().endsWith(".zip")) suggestedName = suggestedName.substring(0, suggestedName.length() - 4);
+        if (suggestedName.toLowerCase().endsWith(".zip"))
+            suggestedName = suggestedName.substring(0, suggestedName.length() - 4);
 
         String userInput = JOptionPane.showInputDialog(this, "Enter ZIP file name:", suggestedName);
         if (userInput == null || userInput.trim().isEmpty()) return;
 
-        File zipFile = getUniqueZipFile(new File(selected.getParent(), userInput.trim() + ".zip"));
+        File zipFile = getUniqueZipFile(new File(currentDirectory, userInput.trim() + ".zip"));
 
         new Thread(() -> {
             try (FileOutputStream fos = new FileOutputStream(zipFile);
-                 ZipOutputStream zos = new ZipOutputStream(fos)) {
+                 ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos))) {
 
-                zipFileRecursiveRelative(selected, selected.getParentFile(), zos, zipFile);
+                // baseDir = the parent of the selected item. This makes archive entries
+                // look like "selectedName/..." for directories or "file.txt" for a single file.
+                File baseDir = selected.getParentFile();
+                if (baseDir == null) baseDir = selected; // defensive: e.g. root selection
+
+                zipFileRecursiveRelative(selected, baseDir, zos, zipFile);
 
                 SwingUtilities.invokeLater(() ->
                         JOptionPane.showMessageDialog(Frame.this, "Created ZIP: " + zipFile.getAbsolutePath(), "Success", JOptionPane.INFORMATION_MESSAGE));
@@ -245,29 +272,55 @@ public class Frame extends JFrame implements ActionListener {
         }).start();
     }
 
+
     private void zipFileRecursiveRelative(File fileToZip, File baseDir, ZipOutputStream zos, File zipFile) throws IOException {
-        if (fileToZip.isHidden() || fileToZip.equals(zipFile)) return;
 
-        String entryName = baseDir.toURI().relativize(fileToZip.toURI()).getPath();
+        // Skip hidden and skip the archive file itself (compare canonical paths)
+        if (fileToZip.isHidden()) return;
+        try {
+            if (fileToZip.getCanonicalPath().equals(zipFile.getCanonicalPath())) return;
+        } catch (IOException ignored) { /* fallback below will still work */ }
+
         if (fileToZip.isDirectory()) {
-            if (!entryName.endsWith("/")) entryName += "/";
-            zos.putNextEntry(new ZipEntry(entryName));
-            zos.closeEntry();
-
             File[] children = fileToZip.listFiles();
             if (children != null) {
-                for (File child : children) zipFileRecursiveRelative(child, baseDir, zos, zipFile);
+                for (File child : children) {
+                    zipFileRecursiveRelative(child, baseDir, zos, zipFile);
+                }
             }
             return;
         }
 
-        try (FileInputStream fis = new FileInputStream(fileToZip)) {
-            zos.putNextEntry(new ZipEntry(entryName));
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = fis.read(buffer)) > 0) zos.write(buffer, 0, len);
-            zos.closeEntry();
+        // Compute entry name relative to baseDir
+        String entryName;
+        try {
+            entryName = baseDir.toURI().relativize(fileToZip.toURI()).getPath();
+        } catch (Exception ex) {
+            // fallback to simple name if relativize fails
+            entryName = fileToZip.getName();
         }
+        // If relativize returned empty (rare), use filename
+        if (entryName == null || entryName.isEmpty()) {
+            entryName = fileToZip.getName();
+        }
+        // Ensure ZIP uses forward slashes
+        entryName = entryName.replace(File.separatorChar, '/');
+
+        // Add file entry and write bytes
+        ZipEntry entry = new ZipEntry(entryName);
+        entry.setTime(fileToZip.lastModified());
+        zos.putNextEntry(entry);
+
+        try (FileInputStream fis = new FileInputStream(fileToZip);
+             BufferedInputStream bis = new BufferedInputStream(fis)) {
+            byte[] buffer = new byte[4096];
+            int len;
+            while ((len = bis.read(buffer)) != -1) {
+                zos.write(buffer, 0, len);
+            }
+        }
+
+        zos.closeEntry();
     }
 
     private File getUniqueZipFile(File baseFile) {
