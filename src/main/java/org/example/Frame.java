@@ -117,7 +117,8 @@ public class Frame extends JFrame implements ActionListener {
         renameBtn.setBackground(new Color(0xFC81B6));
         topActionPanel.add(renameBtn);
         topActionPanel.add(Box.createRigidArea(new Dimension(5, 0)));
-        renameBtn.addActionListener(ae -> renameSelectedFile());
+        Rename rename = new Rename();
+        renameBtn.addActionListener(ae -> rename.renameSelectedFile(this, currentDirectory, selectedFile));
 
         // Add zip/unzip/delete buttons to toolbar
         topActionPanel.add(zipBtn);
@@ -223,136 +224,18 @@ public class Frame extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (e.getSource() == zipBtn) createArchive();
-        else if (e.getSource() == unzipBtn) extractArchive();
-        else if (e.getSource() == removeBtn) removeSelectedFile();
+        if (e.getSource() == zipBtn) {
+            Archive archive = new Archive(this,currentDirectory);
+        }
+        else if (e.getSource() == unzipBtn) {
+            Unarchive unarchive = new Unarchive(this, currentDirectory);
+        }
+        else if (e.getSource() == removeBtn) {
+            Delete delete = new Delete(this, selectedFile, currentDirectory);
+        }
     }
 
-    private void renameSelectedFile() {
-        if (selectedFile == null) {
-            JOptionPane.showMessageDialog(this,
-                    "No file or folder selected.",
-                    "Rename",
-                    JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-
-        if (isProtected(selectedFile)) {
-
-            JOptionPane.showMessageDialog(this,
-                    "You're not allowed to rename this file.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-                    );
-            return;
-        }
-
-        String originalName = selectedFile.getName();
-
-        // Extract extension if it exists (e.g. ".txt")
-        String extension = "";
-        int dotIndex = originalName.lastIndexOf('.');
-        if (dotIndex > 0 && dotIndex < originalName.length() - 1) {
-            extension = originalName.substring(dotIndex);  // keep ".txt"
-        }
-
-        // Ask user for the new base name (without extension)
-        String baseName = (extension.isEmpty())
-                ? originalName // folder or no extension
-                : originalName.substring(0, dotIndex);
-
-        String userInput = JOptionPane.showInputDialog(
-                this,
-                "Enter new name:",
-                baseName
-        );
-
-        if (userInput == null) return; // Cancel pressed
-        userInput = userInput.trim();
-
-        if (userInput.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Name cannot be empty.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-                    );
-            return;
-        }
-
-        // Build final name: userInput + original extension
-        String finalName = userInput + extension;
-
-        File renamedFile = new File(selectedFile.getParent(), finalName);
-
-        if (renamedFile.exists()) {
-            JOptionPane.showMessageDialog(this,
-                    "A file or folder with that name already exists.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-                    );
-            return;
-        }
-
-        boolean success = selectedFile.renameTo(renamedFile);
-
-        if (!success) {
-            JOptionPane.showMessageDialog(this,
-                    "Failed to rename.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        selectedFile = renamedFile;
-        showFiles(currentDirectory);
-        JOptionPane.showMessageDialog(this,
-                "Renamed successfully!",
-                "Success",
-                JOptionPane.INFORMATION_MESSAGE);
-
-
-    }
-
-    private void removeSelectedFile() {
-        if (selectedFile == null) {
-            JOptionPane.showMessageDialog(this,
-                    "No file/folder selected.",
-                    "Info",
-                    JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-        if (isProtected(selectedFile)) {
-            JOptionPane.showMessageDialog(this,
-                    "You're not allowed to delete this file.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to delete: " + selectedFile.getName() + "?",
-                "Confirm Delete",
-                JOptionPane.YES_NO_OPTION);
-        if (confirm != JOptionPane.YES_OPTION) return;
-
-        deleteRecursively(selectedFile);
-        selectedFile = null;
-        showFiles(currentDirectory);
-        JOptionPane.showMessageDialog(this,
-                "File deleted successfully!",
-                "Success",
-                JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private boolean deleteRecursively(File file) {
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            if (children != null) for (File child : children) deleteRecursively(child);
-        }
-        return file.delete();
-    }
-
-    private boolean isProtected(File file) {
+    protected boolean isProtected(File file) {
         try {
             if (file.isHidden()) return true;
             String canonicalPath = file.getCanonicalPath();
@@ -389,183 +272,6 @@ public class Frame extends JFrame implements ActionListener {
                 }
             }
         }
-    }
-
-
-    public void createArchive() {
-        JFileChooser chooser = new JFileChooser(currentDirectory);
-        chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
-
-        File selected = chooser.getSelectedFile();
-        String suggestedName = selected.getName();
-        if (suggestedName.toLowerCase().endsWith(".zip"))
-            suggestedName = suggestedName.substring(0, suggestedName.length() - 4);
-
-        String userInput = JOptionPane.showInputDialog(this,
-                "Enter ZIP file name:",
-                suggestedName);
-        if (userInput == null || userInput.trim().isEmpty()) return;
-
-        File zipFile = getUniqueZipFile(new File(currentDirectory, userInput.trim() + ".zip"));
-
-        new Thread(() -> {
-            try (FileOutputStream fos = new FileOutputStream(zipFile);
-                 ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos))) {
-
-                // baseDir = the parent of the selected item. This makes archive entries
-                // look like "selectedName/..." for directories or "file.txt" for a single file.
-                File baseDir = selected.getParentFile();
-                if (baseDir == null) baseDir = selected; // defensive: e.g. root selection
-
-                zipFileRecursiveRelative(selected, baseDir, zos, zipFile);
-
-                SwingUtilities.invokeLater(() ->
-                        JOptionPane.showMessageDialog(Frame.this,
-                                "Created ZIP: " + zipFile.getAbsolutePath(),
-                                "Success",
-                                JOptionPane.INFORMATION_MESSAGE));
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                SwingUtilities.invokeLater(this::errorMessage);
-            }
-        }).start();
-        showFiles(currentDirectory);
-    }
-
-
-    private void zipFileRecursiveRelative(File fileToZip, File baseDir, ZipOutputStream zos, File zipFile) throws IOException {
-
-        // Skip hidden and skip the archive file itself (compare canonical paths)
-        if (fileToZip.isHidden()) return;
-        try {
-            if (fileToZip.getCanonicalPath().equals(zipFile.getCanonicalPath())) return;
-        } catch (IOException ignored) { /* fallback below will still work */ }
-
-        if (fileToZip.isDirectory()) {
-            File[] children = fileToZip.listFiles();
-            if (children != null) {
-                for (File child : children) {
-                    zipFileRecursiveRelative(child, baseDir, zos, zipFile);
-                    System.out.println("Zipped "+child.getName()+" to "+baseDir.getName());
-                }
-            }
-            System.out.println("Zipped "+fileToZip.getName()+" to "+baseDir.getName());
-            return;
-        }
-
-        // Compute entry name relative to baseDir
-        String entryName;
-        try {
-            entryName = baseDir.toURI().relativize(fileToZip.toURI()).getPath();
-        } catch (Exception ex) {
-            // fallback to simple name if relativize fails
-            entryName = fileToZip.getName();
-        }
-        // If relativize returned empty (rare), use filename
-        if (entryName == null || entryName.isEmpty()) {
-            entryName = fileToZip.getName();
-        }
-        // Ensure ZIP uses forward slashes
-        entryName = entryName.replace(File.separatorChar, '/');
-
-        // Add file entry and write bytes
-        ZipEntry entry = new ZipEntry(entryName);
-        entry.setTime(fileToZip.lastModified());
-        zos.putNextEntry(entry);
-
-        try (FileInputStream fis = new FileInputStream(fileToZip);
-             BufferedInputStream bis = new BufferedInputStream(fis)) {
-            byte[] buffer = new byte[4096];
-            int len;
-            while ((len = bis.read(buffer)) != -1) {
-                zos.write(buffer, 0, len);
-            }
-        }
-
-        zos.closeEntry();
-    }
-
-    private File getUniqueZipFile(File baseFile) {
-        String parent = baseFile.getParent();
-        String name = baseFile.getName();
-        if (name.toLowerCase().endsWith(".zip")) name = name.substring(0, name.length() - 4);
-
-        File zipFile = new File(parent, name + ".zip");
-        int count = 1;
-        while (zipFile.exists()) {
-            zipFile = new File(parent, name + " (" + count + ").zip");
-            count++;
-        }
-        return zipFile;
-    }
-
-    public void extractArchive() {
-        JFileChooser chooser = new JFileChooser(currentDirectory);
-        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
-
-        final File zipFile = chooser.getSelectedFile();
-        if (!zipFile.getName().toLowerCase().endsWith(".zip")) {
-            JOptionPane.showMessageDialog(this,
-                    "Please select a .zip file",
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // Ask user for folder to extract into (always relative to currentDirectory)
-        String defaultFolderName = zipFile.getName().substring(0, zipFile.getName().length() - 4);
-        String userFolderName = JOptionPane.showInputDialog(this,
-                "Enter folder name for extraction:",
-                        defaultFolderName);
-        if (userFolderName == null || userFolderName.trim().isEmpty()) return;
-
-        File destDir = getUniqueFolder(new File(currentDirectory, userFolderName.trim()));
-        final File destDirCopy = destDir;
-
-        new Thread(() -> {
-            try (FileInputStream fis = new FileInputStream(zipFile);
-                 ZipInputStream zis = new ZipInputStream(fis)) {
-
-                ZipEntry entry;
-                while ((entry = zis.getNextEntry()) != null) {
-                    File newFile = new File(destDirCopy, entry.getName());
-                    if (entry.isDirectory()) newFile.mkdirs();
-                    else {
-                        new File(newFile.getParent()).mkdirs();
-                        try (FileOutputStream fos = new FileOutputStream(newFile)) {
-                            byte[] buffer = new byte[1024];
-                            int len;
-                            while ((len = zis.read(buffer)) > 0) fos.write(buffer, 0, len);
-                        }
-                    }
-                    zis.closeEntry();
-                }
-
-                SwingUtilities.invokeLater(() ->
-                        JOptionPane.showMessageDialog(Frame.this,
-                                "Extracted to: " + destDirCopy.getAbsolutePath(),
-                                "Success",
-                                JOptionPane.INFORMATION_MESSAGE));
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                SwingUtilities.invokeLater(this::errorMessage);
-            }
-        }).start();
-        showFiles(currentDirectory);
-    }
-
-    private File getUniqueFolder(File baseFolder) {
-        File folder = baseFolder;
-        int count = 1;
-        while (folder.exists()) {
-            folder = new File(baseFolder.getParent(), baseFolder.getName() + " (" + count + ")");
-            count++;
-        }
-        folder.mkdirs();
-        return folder;
     }
 }
 
