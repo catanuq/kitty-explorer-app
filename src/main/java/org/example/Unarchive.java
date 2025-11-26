@@ -23,7 +23,7 @@ public class Unarchive {
             return;
         }
 
-        // Ask user for folder to extract into (always relative to currentDirectory)
+
         String defaultFolderName = zipFile.getName().substring(0, zipFile.getName().length() - 4);
         String userFolderName = JOptionPane.showInputDialog(frame,
                 "Enter folder name for extraction:",

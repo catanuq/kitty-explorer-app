@@ -17,7 +17,7 @@ public class Frame extends JFrame implements ActionListener {
     JLabel label;
 
     File currentDirectory;
-    File selectedFile; // currently selected file/folder
+    File selectedFile;
 
     private final String[] allowedExtensions = {
             ".txt", ".png", ".jpg", ".jpeg", ".gif", ".bmp",
@@ -33,13 +33,13 @@ public class Frame extends JFrame implements ActionListener {
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(5, 5, 5, 5);
 
-        // --- Load logo ---
+
         icon = new ImageIcon(getClass().getResource("/images/helloKitty.png"));
         Image img = icon.getImage().getScaledInstance(120, 120, Image.SCALE_SMOOTH);
         icon = new ImageIcon(img);
         label = new JLabel(icon);
 
-        // --- Left panel for logo + disk buttons ---
+
         JPanel leftPanel = new JPanel(new GridBagLayout());
         leftPanel.setBackground(new Color(0xffa4c6));
         GridBagConstraints lc = new GridBagConstraints();
@@ -68,7 +68,6 @@ public class Frame extends JFrame implements ActionListener {
             leftPanel.add(rootBtn, lc);
         }
 
-        // --- Create action buttons ---
         zipBtn = new JButton("Zip");
         unzipBtn = new JButton("Unzip");
         removeBtn = new JButton("Delete");
@@ -77,27 +76,29 @@ public class Frame extends JFrame implements ActionListener {
         unzipBtn.setBackground(new Color(0xFC81B6));
         removeBtn.setBackground(new Color(0xFC81B6));
 
+
         zipBtn.setFocusable(false);
         unzipBtn.setFocusable(false);
         removeBtn.setFocusable(false);
+
 
         zipBtn.addActionListener(this);
         unzipBtn.addActionListener(this);
         removeBtn.addActionListener(this);
 
-        // --- Right panel setup ---
+
         panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(new Color(0xfffafc));
         scrollPane = new JScrollPane(panel);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-        // --- Top toolbar ---
+
         topActionPanel = new JPanel();
         topActionPanel.setLayout(new BoxLayout(topActionPanel, BoxLayout.X_AXIS));
         topActionPanel.setBackground(new Color(0xfffafc));
 
-        // Back button
+
         backBtn = new JButton("← Back");
         backBtn.setFocusable(false);
         backBtn.setBackground(new Color(0xFC81B6));
@@ -111,7 +112,7 @@ public class Frame extends JFrame implements ActionListener {
         topActionPanel.add(backBtn);
         topActionPanel.add(Box.createRigidArea(new Dimension(5, 0)));
 
-        // Rename button
+
         renameBtn = new JButton("Rename");
         renameBtn.setFocusable(false);
         renameBtn.setBackground(new Color(0xFC81B6));
@@ -120,7 +121,7 @@ public class Frame extends JFrame implements ActionListener {
         Rename rename = new Rename();
         renameBtn.addActionListener(ae -> rename.renameSelectedFile(this, currentDirectory, selectedFile));
 
-        // Add zip/unzip/delete buttons to toolbar
+
         topActionPanel.add(zipBtn);
         topActionPanel.add(Box.createRigidArea(new Dimension(5, 0)));
         topActionPanel.add(unzipBtn);
@@ -128,12 +129,12 @@ public class Frame extends JFrame implements ActionListener {
         topActionPanel.add(removeBtn);
         topActionPanel.add(Box.createHorizontalGlue());
 
-        // --- Right panel containing toolbar and file list ---
+
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.add(topActionPanel, BorderLayout.NORTH);
         rightPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // --- Add panels to main frame ---
+
         c.gridx = 0;
         c.gridy = 0;
         c.fill = GridBagConstraints.VERTICAL;
@@ -174,13 +175,13 @@ public class Frame extends JFrame implements ActionListener {
                 fileButton.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        // Single-click: select
+
                         if (e.getClickCount() == 1) {
                             selectedFile = file;
                             highlightSelectedButton(fileButton);
                         }
 
-                        // Double-click: open or navigate
+
                         if (e.getClickCount() == 2) {
                             if (file.isDirectory()) {
                                 currentDirectory = file;
@@ -263,11 +264,10 @@ public class Frame extends JFrame implements ActionListener {
         Component[] components = panel.getComponents();
         for (Component comp : components) {
             if (comp instanceof JButton) {
-                JButton button = (JButton) comp;  // classic cast for Java 8
+                JButton button = (JButton) comp;
                 if (button == clickedButton) {
-                    button.setBackground(new Color(0xffc0cb)); // selected
+                    button.setBackground(new Color(0xffc0cb));
                 } else {
-                    // Reset background depending on whether it's a folder or file
                     button.setBackground(new Color(0xfffafc));
                 }
             }

@@ -28,16 +28,16 @@ public class Rename {
 
         String originalName = selectedFile.getName();
 
-        // Extract extension if it exists (e.g. ".txt")
+
         String extension = "";
         int dotIndex = originalName.lastIndexOf('.');
         if (dotIndex > 0 && dotIndex < originalName.length() - 1) {
-            extension = originalName.substring(dotIndex);  // keep ".txt"
+            extension = originalName.substring(dotIndex);
         }
 
-        // Ask user for the new base name (without extension)
+
         String baseName = (extension.isEmpty())
-                ? originalName // folder or no extension
+                ? originalName
                 : originalName.substring(0, dotIndex);
 
         String userInput = JOptionPane.showInputDialog(
@@ -46,7 +46,7 @@ public class Rename {
                 baseName
         );
 
-        if (userInput == null) return; // Cancel pressed
+        if (userInput == null) return;
         userInput = userInput.trim();
 
         if (userInput.isEmpty()) {
@@ -58,7 +58,7 @@ public class Rename {
             return;
         }
 
-        // Build final name: userInput + original extension
+
         String finalName = userInput + extension;
 
         File renamedFile = new File(selectedFile.getParent(), finalName);

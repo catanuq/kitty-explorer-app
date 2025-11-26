@@ -28,10 +28,9 @@ public class Archive {
             try (FileOutputStream fos = new FileOutputStream(zipFile);
                  ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos))) {
 
-                // baseDir = the parent of the selected item. This makes archive entries
-                // look like "selectedName/..." for directories or "file.txt" for a single file.
+
                 File baseDir = selected.getParentFile();
-                if (baseDir == null) baseDir = selected; // defensive: e.g. root selection
+                if (baseDir == null) baseDir = selected;
 
                 zipFileRecursiveRelative(selected, baseDir, zos, zipFile);
 
@@ -52,11 +51,11 @@ public class Archive {
 
     private void zipFileRecursiveRelative(File fileToZip, File baseDir, ZipOutputStream zos, File zipFile) throws IOException {
 
-        // Skip hidden and skip the archive file itself (compare canonical paths)
+
         if (fileToZip.isHidden()) return;
         try {
             if (fileToZip.getCanonicalPath().equals(zipFile.getCanonicalPath())) return;
-        } catch (IOException ignored) { /* fallback below will still work */ }
+        } catch (IOException ignored) {  }
 
         if (fileToZip.isDirectory()) {
             File[] children = fileToZip.listFiles();
@@ -70,22 +69,22 @@ public class Archive {
             return;
         }
 
-        // Compute entry name relative to baseDir
+
         String entryName;
         try {
             entryName = baseDir.toURI().relativize(fileToZip.toURI()).getPath();
         } catch (Exception ex) {
-            // fallback to simple name if relativize fails
+
             entryName = fileToZip.getName();
         }
-        // If relativize returned empty (rare), use filename
+
         if (entryName == null || entryName.isEmpty()) {
             entryName = fileToZip.getName();
         }
-        // Ensure ZIP uses forward slashes
+
         entryName = entryName.replace(File.separatorChar, '/');
 
-        // Add file entry and write bytes
+
         ZipEntry entry = new ZipEntry(entryName);
         entry.setTime(fileToZip.lastModified());
         zos.putNextEntry(entry);
